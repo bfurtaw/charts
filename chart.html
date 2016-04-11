@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+  <link href="css/base.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+<style>
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: auto;
+  position: relative;
+  background-image: url("black-n-blue.gif");
+  background-color: #000;
+  color: white;
+  width: 960px;
+}
+
+text {
+  font: 10px sans-serif;
+  background: #fff;
+  stroke: #aaa;
+}
+
+svg {
+	stroke: #ddd;
+	padding: 10px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #aaa;
+  shape-rendering: crispEdges;
+}
+
+form {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.fe-sidebar {
+	width:250px;
+	height: 1020px;
+	position: absolute;
+	left: 0;
+}
+.vertical-container {
+	height: 50px;
+	display: -webkit-flex;
+	display: flex;
+	-webkit-align-items: center;
+	align-items: center;
+	-webkit-justify-content: center;
+	justify-content: center;
+}
+#fe1 {
+   width: 960px;
+	position: relative;
+	left: 0;
+}
+#fe2 {
+   width: 960px;
+	position: relative;
+	left: 0;
+}
+#tweet {
+	width: 960px;
+	height: 250px;
+	-webkit-align-items: center;
+	align-items: center;
+	-webkit-justify-content: center;
+	justify-content: center;
+}
+
+</style>
+<!-- js -->
+  <!--[if lt IE 9]><script src="js/html5shiv.min.js"></script><![endif]-->
+</head>
+
+<title>Feature Extraction</title>
+<div class="outer-title-box">
+<div class="inner-title-box">
+<h1 class="title">Feature Extraction</h1>
+</div>
+</div>
+<form>
+  <label><input type="radio" name="mode" value="grouped"> Linear</label>
+  <label><input type="radio" name="mode" value="stacked" checked> Logarithm</label>
+  <label><input type="radio" name="mode" value="maxhold" checked> Max Hold</label>
+</form>
+<div class="fe-sidebar"> <div class="vertical-container"><label>Channels</label></div>
+<div class="container">
+
+      <div class="settings">
+		 <div class="row">
+          <div class="question">
+            SourceA
+          </div>
+          <div class="switch">
+            <input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox">
+            <label for="cmn-toggle-1"></label>
+          </div>
+        </div><!-- /row -->
+		 <div class="row">
+          <div class="question">
+            SourceB
+          </div>
+          <div class="switch">
+            <input id="cmn-toggle-2" class="cmn-toggle cmn-toggle-round" type="checkbox">
+            <label for="cmn-toggle-2"></label>
+          </div>
+        </div><!-- /row -->
+		 <div class="row">
+          <div class="question">
+            SourceC
+          </div>
+          <div class="switch">
+            <input id="cmn-toggle-3" class="cmn-toggle cmn-toggle-round" type="checkbox">
+            <label for="cmn-toggle-3"></label>
+          </div>
+        </div><!-- /row -->
+		 <div class="row">
+          <div class="question">
+            SourceD
+          </div>
+          <div class="switch">
+            <input id="cmn-toggle-4" class="cmn-toggle cmn-toggle-round" type="checkbox">
+            <label for="cmn-toggle-4"></label>
+          </div>
+        </div><!-- /row -->
+		 <div class="row">
+          <div class="question">
+            Total
+          </div>
+          <div class="switch">
+            <input id="cmn-toggle-5" class="cmn-toggle cmn-toggle-round" type="checkbox">
+            <label for="cmn-toggle-5"></label>
+          </div>
+        </div><!-- /row -->
+		  </div>
+		  </div>
+</div>
+<div id="fe1"></div>
+<div id="fe2"></div>
+<div id="tweet"></div>
+
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="json.js"></script>
+<script>
+
+var n = 3, // number of layers
+    m = 5, // number of samples per layer
+    stack = d3.layout.stack(),
+    layers = stack(d3.range(n).map(function() { return bumpLayer(m, .1); })),
+    yGroupMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y; }); }),
+    yStackMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); });
+
+var margin = {top: 40, right: 10, bottom: 20, left: 250},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .domain(d3.range(m))
+    .rangeRoundBands([0, width], .08);
+
+var y = d3.scale.linear()
+    .domain([0, yStackMax])
+    .range([height, 0]);
+
+var color = d3.scale.linear()
+    .domain([0, n - 1])
+    .range(["#050", "#0b0"]);
+var color2 = d3.scale.linear()
+    .domain([0, n - 1])
+    .range(["#450", "#9b0"]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .tickSize(0)
+    .tickPadding(6)
+    .orient("bottom");
+
+var svg1 = d3.select("#fe1").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+var svg2 = d3.select("#fe2").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
+var layer = svg1.selectAll(".layer")
+    .data(layers)
+  .enter().append("g")
+    .attr("class", "layer")
+    .style("fill", function(d, i) { return color(i); });
+var layer2 = svg2.selectAll(".layer")
+    .data(layers)
+  .enter().append("g")
+    .attr("class", "layer")
+    .style("fill", function(d, i) { return color2(i); });
+
+var rect = layer.selectAll("rect")
+    .data(function(d) { return d; })
+  .enter().append("rect")
+    .attr("x", function(d) { return x(d.x); })
+    .attr("y", height)
+    .attr("width", x.rangeBand())
+    .attr("height", 0);
+
+var rect2 = layer2.selectAll("rect")
+    .data(function(d) { return d; })
+  .enter().append("rect")
+    .attr("x", function(d) { return x(d.x); })
+    .attr("y", height)
+    .attr("width", x.rangeBand())
+    .attr("height", 0);
+
+rect.transition()
+    .delay(function(d, i) { return i * 10; })
+    .attr("y", function(d) { return y(d.y0 + d.y); })
+    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+
+rect2.transition()
+    .delay(function(d, i) { return i * 10; })
+    .attr("y", function(d) { return y(d.y0 + d.y); })
+    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+
+svg1.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+svg2.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+d3.selectAll("input").on("change", change);
+
+var timeout = setTimeout(function() {
+  d3.select("input[value=\"grouped\"]").property("checked", true).each(change);
+}, 2000);
+
+
+function change() {
+  clearTimeout(timeout);
+  if (this.value === "grouped") transitionGrouped();
+  else transitionStacked();
+}
+
+function transitionGrouped() {
+  y.domain([0, yGroupMax]);
+
+  rect.transition()
+      .duration(500)
+      .delay(function(d, i) { return i * 10; })
+      .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / n * j; })
+      .attr("width", x.rangeBand() / n)
+    .transition()
+      .attr("y", function(d) { return y(d.y); })
+      .attr("height", function(d) { return height - y(d.y); });
+}
+
+function transitionStacked() {
+  y.domain([0, yStackMax]);
+
+  rect.transition()
+      .duration(500)
+      .delay(function(d, i) { return i * 10; })
+      .attr("y", function(d) { return y(d.y0 + d.y); })
+      .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
+    .transition()
+      .attr("x", function(d) { return x(d.x); })
+      .attr("width", x.rangeBand());
+}
+
+function bumpLayer(n, o) {
+
+  function bump(a) {
+    var x = 1 / (.1 + Math.random()),
+        y = 2 * Math.random() - .5,
+        z = 10 / (.1 + Math.random());
+    for (var i = 0; i < n; i++) {
+      var w = (i / n - y) * z;
+      a[i] += x * Math.exp(-w * w);
+    }
+  }
+
+  var a = [], i;
+  for (i = 0; i < n; ++i) a[i] = o + o * Math.random();
+  for (i = 0; i < 5; ++i) bump(a);
+  return a.map(function(d, i) { return {x: i, y: Math.max(0, d)}; });
+}
+
+
+var argv_params = {};
+if( location.search) {
+	var argv_parts = location.search.substring(1).split('&');
+	for(var i = 0; i < argv_parts.length; i++) {
+		var args = argv_parts[i].split('=');
+		if(!args[0]) continue;
+		argv_params[args[0].toLowerCase()] = args[1] || true;
+	}
+}
+var websocket = new WebSocket(argv_params["server"]);
+var ws_opened = false;
+
+function parse00(evt) {
+	// pick a histogram
+	switch(evt.data.substr(4) ){
+		case '0':
+			break;
+		case '1':
+			break;
+	}
+	// grab the histogram title
+	title_width = parseInt(evt.data.substr(5,2));
+	title = evt.data.substr(7,title_width );
+	console.log(title);
+	var channels = [];
+	count = parseInt(evt.data.substr(9+title_width,2));
+	start = 15+title_width;
+	for(var i = 0; i < count; i++) {
+		str_w = parseInt(evt.data.substr(start, 2));
+		channels[i] = evt.data.substr(start+2,str_w);
+		start += str_w+6;
+	}
+	console.log(channels);
+}
+
+function parse01(evt) {
+	// pick a histogram
+	switch(evt.data.substr(4) ){
+		case '0':
+			break;
+		case '1':
+			break;
+	}
+	count = parseInt(evt.data.substr(5,4));
+	var value_array = [];
+	// IGNORE the active field for now.
+	for(var i = 0; i < count; i++) {
+		value_array[i] = parseInt(evt.data.substr(14+(i*10),5));
+	}
+	console.log(value_array);
+	var w = 960;
+	var h = 1020;
+				svg1.selectAll("text")
+			   .data(value_array)
+			   .enter()
+			   .append("text")
+			   .text(function(d) {
+			   		return d;
+			   })
+			   .attr("x", function(d, i) {
+			   		return i * (w / value_array.length) + 5;
+			   })
+			   .attr("y", function(d) {
+			   		return h - (d * 4) + 15;
+			   })
+			   .attr("font-family", "sans-serif")
+			   .attr("font-size", "11px")
+			   .attr("fill", "white");
+	
+}
+
+function parse30(evt) {
+	//don't know what these are for yet.
+}
+
+function parse200(evt) {
+	classifier = evt.data.substr(22, parseInt(evt.data.substr(20,2)) );
+	console.log(classifier);
+	hex_color = evt.data.substr(8,12);
+	console.log(hex_color);
+}
+
+websocket.onopen = function() { document.getElementById("tweet").innerHTML += "<p style='color: blue;'>> CONNECTED</p>"; ws_opened = true; };
+websocket.onmessage = function(evt) { switch(evt.data.substr(0,4)) {
+   case '0000':
+		parse00(evt);
+		break;
+	case '0001':
+		parse01(evt);
+		break;
+	case '0030':
+	   //parse30(evt);
+		break;
+	case '0200':
+		parse200(evt);
+		break;
+	default:
+		document.getElementById("tweet").innerHTML += "<p style='color: blue;'>> RESPONSE: " + evt.data + "</p>"; };
+	} 
+websocket.onerror = function(evt) { document.getElementById("tweet").innerHTML += "<p style='color: red;'>> ERROR: " + evt.data + "</p>"; };
+
+function sendMessage(message) {
+		  if(ws_opened) {
+		  	document.getElementById("tweet").innerHTML += "<p style='color: blue;'>> SENT: " + message + "</p>";
+		  	websocket.send(message);
+		  }
+}
+
+
+var jsondata = eval('('+jsontext+')');
+var corr =0;
+var tid = setInterval(function() { if(corr < jsondata.messages.length) { sendMessage(jsondata.messages[corr]); corr++;} else { clearInterval(tid); } },1000);
+
+</script>

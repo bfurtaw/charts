@@ -36,13 +36,14 @@ svg {
 form {
   position: absolute;
   right: 10px;
-  top: 10px;
+  top: 50px;
 }
 
 .fe-sidebar {
 	width:250px;
 	height: 1020px;
 	position: absolute;
+	top: 100px;
 	left: 0;
 }
 .vertical-container {
@@ -54,23 +55,65 @@ form {
 	-webkit-justify-content: center;
 	justify-content: center;
 }
+.outer-title-box {
+  position: absolute;
+  top: 50px;
+
+}
 #fe1 {
+  position: absolute;
    width: 960px;
-	position: relative;
-	left: 0;
+	left: 250px;
+	top: 80px;
 }
 #fe2 {
+  position: absolute;
    width: 960px;
 	position: relative;
-	left: 0;
+	left: 250px;
+	top: 580px;
 }
 #tweet {
+  position: absolute;
 	width: 960px;
 	height: 250px;
+	top: 1180px;
+	overflow: scroll;
+	-webkit-scrollbar-track-color: black;
 	-webkit-align-items: center;
 	align-items: center;
 	-webkit-justify-content: center;
 	justify-content: center;
+}
+
+.banner-bottom {
+	position: fixed;
+	clear: left;
+	width: 100%;
+	height: 50px;
+	bottom: 0;
+	padding-top: 12px;
+	-webkit-align-items: center;
+	align-items: center;
+	-webkit-justify-content: center;
+	justify-content: center;
+	text-align: center;
+	display: table;
+}
+
+.banner-top {
+	position: fixed;
+	clear: left;
+	width: 100%;
+	height: 50px;
+	top: 0;
+	padding-top: 12px;
+	-webkit-align-items: center;
+	align-items: center;
+	-webkit-justify-content: center;
+	justify-content: center;
+	text-align: center;
+	display: table;
 }
 
 </style>
@@ -78,6 +121,8 @@ form {
   <!--[if lt IE 9]><script src="js/html5shiv.min.js"></script><![endif]-->
 </head>
 
+<body>
+<div class=banner-top><span></span></div>
 <title>Feature Extraction</title>
 <div class="outer-title-box">
 <div class="inner-title-box">
@@ -85,8 +130,8 @@ form {
 </div>
 </div>
 <form>
-  <label><input type="radio" name="mode" value="grouped"> Linear</label>
-  <label><input type="radio" name="mode" value="stacked" checked> Logarithm</label>
+  <label><input type="radio" name="mode" value="lined"> Linear</label>
+  <label><input type="radio" name="mode" value="logged" checked> Logarithm</label>
   <label><input type="radio" name="mode" value="maxhold" checked> Max Hold</label>
 </form>
 <div class="fe-sidebar"> <div class="vertical-container"><label>Channels</label></div>
@@ -145,34 +190,43 @@ form {
 <div id="fe2"></div>
 <div id="tweet"></div>
 
+<footer>
+<div class=banner-bottom><span></span></div>
+</footer>
+
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script src="json.js"></script>
 <script>
 
-var n = 3, // number of layers
-    m = 5, // number of samples per layer
-    stack = d3.layout.stack(),
-    layers = stack(d3.range(n).map(function() { return bumpLayer(m, .1); })),
-    yGroupMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y; }); }),
-    yStackMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); });
+var 
+    m_slots = 15, // number of samples per histogram
+    layers = bumpLayer(m_slots),
+    yGroupMax = 20,
+    yStackMax = 20,
+	 textPadding = 14;
 
-var margin = {top: 40, right: 10, bottom: 20, left: 250},
+var colorArray = [];
+var margin = {top: 40, right: 10, bottom: 25, left: 25},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
 var x = d3.scale.ordinal()
-    .domain(d3.range(m))
+    .domain(d3.range(m_slots))
     .rangeRoundBands([0, width], .08);
 
 var y = d3.scale.linear()
     .domain([0, yStackMax])
     .range([height, 0]);
 
-var color = d3.scale.linear()
-    .domain([0, n - 1])
-    .range(["#050", "#0b0"]);
+var color = function(i) { 
+	if(i >= colorArray.length)
+		colorArray[i] = '#' + Math.floor(Math.random()*16777215).toString(16);
+	return colorArray[i]; }
+//d3.scale.linear()
+//    .domain([0, m_slots])
+//    .range(["#050", "#0b0"]);
 var color2 = d3.scale.linear()
-    .domain([0, n - 1])
+    .domain([0, m_slots])
     .range(["#450", "#9b0"]);
 
 var xAxis = d3.svg.axis()
@@ -191,42 +245,61 @@ var svg2 = d3.select("#fe2").append("svg")
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
-var layer = svg1.selectAll(".layer")
-    .data(layers)
-  .enter().append("g")
-    .attr("class", "layer")
-    .style("fill", function(d, i) { return color(i); });
-var layer2 = svg2.selectAll(".layer")
-    .data(layers)
-  .enter().append("g")
-    .attr("class", "layer")
-    .style("fill", function(d, i) { return color2(i); });
 
-var rect = layer.selectAll("rect")
-    .data(function(d) { return d; })
+// builds a #div foreach color block
+var rect = svg1.selectAll("rect")
+    .data(layers)
   .enter().append("rect")
-    .attr("x", function(d) { return x(d.x); })
+    .attr("class", "layer")
+    .style("fill", function(d, i) { return color(i); })
+	 .attr("x", function(d, i) { return x(i); })
+    .attr("y", height)
+    .attr("width", x.rangeBand())
+    .attr("height", 0);
+var rect2 = svg2.selectAll("rect")
+    .data(layers)
+  .enter().append("rect")
+    .attr("class", "layer")
+    .style("fill", function(d, i) { return color(i); })
+    .attr("x", function(d,i) { return x(i); })
     .attr("y", height)
     .attr("width", x.rangeBand())
     .attr("height", 0);
 
-var rect2 = layer2.selectAll("rect")
-    .data(function(d) { return d; })
-  .enter().append("rect")
-    .attr("x", function(d) { return x(d.x); })
-    .attr("y", height)
-    .attr("width", x.rangeBand())
-    .attr("height", 0);
+// label each bar in the histogram with value
+svg1.selectAll("text")
+	.data(layers)
+	.enter().append("text")
+	.text(function(d) { return d.y; })
+	.attr("text-anchor", "middle")
+	.attr("x", function(d, i) {return x(i) + x.rangeBand()/2; } )
+	.attr("y", function(d) { return y(d)  + textPadding; } )
+	.attr("font-family", "san-serif")
+	.attr("font-size", "11px")
+	.attr("fill", "white");
+
+svg2.selectAll("text")
+	.data(layers)
+	.enter().append("text")
+	.text(function(d) { return d; })
+	.attr("text-anchor", "middle")
+	.attr("x", function(d, i) {return x(i) + x.rangeBand()/2; } )
+	.attr("y", function(d) { return y(d)  + textPadding; } )
+	.attr("font-family", "san-serif")
+	.attr("font-size", "11px")
+	.attr("fill", "white");
+
+// builds a rect struct foreach in data layers
 
 rect.transition()
-    .delay(function(d, i) { return i * 10; })
-    .attr("y", function(d) { return y(d.y0 + d.y); })
-    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+    .delay(function(d, i) { return i * 10 +1; })
+    .attr("y", function(d) { return y(d); })
+    .attr("height", function(d) { return height - Math.max(0,y( d)); });
 
 rect2.transition()
-    .delay(function(d, i) { return i * 10; })
-    .attr("y", function(d) { return y(d.y0 + d.y); })
-    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+    .delay(function(d, i) { return i * 10 + 1; })
+    .attr("y", function(d) { return y(d); })
+    .attr("height", function(d) { return height - Math.max(0,y( d)); });
 
 svg1.append("g")
     .attr("class", "x axis")
@@ -240,61 +313,54 @@ svg2.append("g")
 d3.selectAll("input").on("change", change);
 
 var timeout = setTimeout(function() {
-  d3.select("input[value=\"grouped\"]").property("checked", true).each(change);
+  d3.select("input[value=\"lined\"]").property("checked", true).each(change);
 }, 2000);
 
 
 function change() {
   clearTimeout(timeout);
-  if (this.value === "grouped") transitionGrouped();
-  else transitionStacked();
+  if (this.value === "logged") transitionLogged();
+  else transitionLined();
 }
 
-function transitionGrouped() {
-  y.domain([0, yGroupMax]);
+function transitionLined() {
+y = d3.scale.linear()
+    .domain([0, yStackMax])
+    .range([height, 0]);
 
   rect.transition()
       .duration(500)
       .delay(function(d, i) { return i * 10; })
-      .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / n * j; })
-      .attr("width", x.rangeBand() / n)
+      .attr("y", function(d) { return y(d); })
+      .attr("height", function(d) { return  height - y( d); })
     .transition()
-      .attr("y", function(d) { return y(d.y); })
-      .attr("height", function(d) { return height - y(d.y); });
-}
-
-function transitionStacked() {
-  y.domain([0, yStackMax]);
-
-  rect.transition()
-      .duration(500)
-      .delay(function(d, i) { return i * 10; })
-      .attr("y", function(d) { return y(d.y0 + d.y); })
-      .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
-    .transition()
-      .attr("x", function(d) { return x(d.x); })
+      .attr("x", function(d, i) { return x(i); })
       .attr("width", x.rangeBand());
 }
 
-function bumpLayer(n, o) {
+function transitionLogged() {
+y = d3.scale.log()
+		.base(Math.E)
+    	.domain([Math.exp(0), Math.exp(9)])
+    	.range([height, 0]);
 
-  function bump(a) {
-    var x = 1 / (.1 + Math.random()),
-        y = 2 * Math.random() - .5,
-        z = 10 / (.1 + Math.random());
-    for (var i = 0; i < n; i++) {
-      var w = (i / n - y) * z;
-      a[i] += x * Math.exp(-w * w);
-    }
-  }
-
-  var a = [], i;
-  for (i = 0; i < n; ++i) a[i] = o + o * Math.random();
-  for (i = 0; i < 5; ++i) bump(a);
-  return a.map(function(d, i) { return {x: i, y: Math.max(0, d)}; });
+  rect.transition()
+      .duration(500)
+      .delay(function(d, i) { return i * 10; })
+      .attr("y", function(d) { return y(d + 0.01); })
+      .attr("height", function(d) { return  height - Math.max(0.01, y( d + 0.01)); })
+    .transition()
+      .attr("x", function(d, i) { return x(i); })
+      .attr("width", x.rangeBand());
 }
 
+// defunct data funct
+function bumpLayer(n) {
+  var a = [20, 0, 5, 7, 1, 20, 0, 5, 7, 1, 20, 0, 5, 7, 1], i;
+  return a.map(function(d, i) { return  Math.max(0, d); });
+}
 
+// Read from the URL
 var argv_params = {};
 if( location.search) {
 	var argv_parts = location.search.substring(1).split('&');
@@ -304,7 +370,12 @@ if( location.search) {
 		argv_params[args[0].toLowerCase()] = args[1] || true;
 	}
 }
+if(WebSocket) {
 var websocket = new WebSocket(argv_params["server"]);
+} else {
+// Mozillia may not support WebSocket in all versions.
+var websocket = new MozWebSocket(argv_params["server"]);
+}
 var ws_opened = false;
 
 function parse00(evt) {
@@ -331,38 +402,51 @@ function parse00(evt) {
 }
 
 function parse01(evt) {
-	// pick a histogram
-	switch(evt.data.substr(4) ){
-		case '0':
-			break;
-		case '1':
-			break;
+	function renderfe1() {
+		svg1.selectAll("rect")
+			.data(value_array)
+			.transition()
+			.delay(function(d,i) { return i * 10 + 1; })
+			.attr("y", function(d) {  return Math.max(0.01,y(d + 0.01)); })
+    		.attr("height", function(d) { return height - Math.max(0.01,y( d + 0.01)); });
+		svg1.selectAll("text")
+			.data(value_array)
+			.transition()
+			.delay(function(d,i) { return i * 10 + 1; })
+			.text(function(d) { return d })
+			.attr("y", function(d) { return y(d + 0.01)   + textPadding; } );
 	}
+	function renderfe2() {
+		svg2.selectAll("rect")
+			.data(value_array)
+			.transition()
+			.delay(function(d,i) { return i * 10 + 1; })
+			.attr("y", function(d) { return Math.max(0.01, y(d + 0.01)); })
+    		.attr("height", function(d) { return height - Math.max(0.01,y( d + 0.01)); });
+		svg2.selectAll("text")
+			.data(value_array)
+			.transition()
+			.delay(function(d,i) { return i * 10 + 1; })
+			.text(function(d) { return d })
+			.attr("y", function(d) { return y(d + 0.01)  + textPadding; } );
+	}
+
 	count = parseInt(evt.data.substr(5,4));
 	var value_array = [];
 	// IGNORE the active field for now.
 	for(var i = 0; i < count; i++) {
 		value_array[i] = parseInt(evt.data.substr(14+(i*10),5));
 	}
+	// pick a histogram
+	switch(evt.data.substr(4,1) ){
+		case '0':
+			renderfe1();
+			break;
+		case '1':
+		   renderfe2();
+			break;
+	}
 	console.log(value_array);
-	var w = 960;
-	var h = 1020;
-				svg1.selectAll("text")
-			   .data(value_array)
-			   .enter()
-			   .append("text")
-			   .text(function(d) {
-			   		return d;
-			   })
-			   .attr("x", function(d, i) {
-			   		return i * (w / value_array.length) + 5;
-			   })
-			   .attr("y", function(d) {
-			   		return h - (d * 4) + 15;
-			   })
-			   .attr("font-family", "sans-serif")
-			   .attr("font-size", "11px")
-			   .attr("fill", "white");
 	
 }
 
@@ -373,8 +457,13 @@ function parse30(evt) {
 function parse200(evt) {
 	classifier = evt.data.substr(22, parseInt(evt.data.substr(20,2)) );
 	console.log(classifier);
-	hex_color = evt.data.substr(8,12);
+	hex_color = evt.data.substr(8,12).toLowerCase();
 	console.log(hex_color);
+	d3.select(".banner-bottom").style("background", "#" + hex_color.substr(2,2) + hex_color.substr(4,2) + hex_color.substr(6,2) );
+	d3.select(".banner-top").style("background",  "#"+hex_color.substr(2,2)+hex_color.substr(4,2)+hex_color.substr(6,2));
+
+	d3.select(".banner-bottom").selectAll("span").text(classifier);
+	d3.select(".banner-top").selectAll("span").text(classifier);
 }
 
 websocket.onopen = function() { document.getElementById("tweet").innerHTML += "<p style='color: blue;'>> CONNECTED</p>"; ws_opened = true; };
@@ -409,3 +498,5 @@ var corr =0;
 var tid = setInterval(function() { if(corr < jsondata.messages.length) { sendMessage(jsondata.messages[corr]); corr++;} else { clearInterval(tid); } },1000);
 
 </script>
+
+</body>

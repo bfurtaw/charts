@@ -195,9 +195,8 @@ form {
 </footer>
 
 <script src="//d3js.org/d3.v3.min.js"></script>
-<script src="json.js"></script>
 <script>
-
+var FE_VERS="fe_gui_version 0.6.0"
 var 
     m_slots = 15, // number of samples per histogram
     layers = bumpLayer(m_slots),
@@ -370,7 +369,7 @@ if( location.search) {
 		argv_params[args[0].toLowerCase()] = args[1] || true;
 	}
 }
-if(WebSocket) {
+if('WebSocket' in window) {
 var websocket = new WebSocket(argv_params["server"]);
 } else {
 // Mozillia may not support WebSocket in all versions.
@@ -491,11 +490,7 @@ function sendMessage(message) {
 		  	websocket.send(message);
 		  }
 }
-
-
-var jsondata = eval('('+jsontext+')');
-var corr =0;
-var tid = setInterval(function() { if(corr < jsondata.messages.length) { sendMessage(jsondata.messages[corr]); corr++;} else { clearInterval(tid); } },1000);
+sendMessage("HelloWOrld!");
 
 </script>
 
